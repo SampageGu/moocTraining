@@ -11,7 +11,7 @@ from rich.prompt  import Prompt
 DOCX_FILE    = "full_answer.docx"   # ← 只解析这一个文件
 NUM_PRACTICE = 20                   # 模式1题量
 MC_RATIO     = 0.6                  # 模式1选择题比例
-
+LEAD_JUNK = re.compile(r"^[\s、，,．\.]+")
 
 console = Console()
 
@@ -83,6 +83,7 @@ def parse_docx(path: str) -> list:
             if hit:
                 ans  = hit.group(1).strip()
                 rest = ANS_PAT.sub("", rest).strip()   # 去掉答案字段
+                rest = LEAD_JUNK.sub("", rest)     # ★ 新增
 
             stem = rest
             if DEBUG:
@@ -130,6 +131,7 @@ def parse_docx(path: str) -> list:
 
 
 def build(idx, stem, opts, ans_raw) -> Question:
+    stem = LEAD_JUNK.sub("", stem.strip())   # ★ 新增
     qtype = "mc" if len(opts) > 2 else "tf"
     ans   = ans_raw.upper()
     if qtype == "tf":
