@@ -7,7 +7,7 @@ from typing import List
 from docx import Document
 from rich.console import Console
 from rich.prompt  import Prompt
-
+import textwrap
 DOCX_FILE    = "full_answer.docx"   # ← 只解析这一个文件
 NUM_PRACTICE = 20                   # 模式1题量
 MC_RATIO     = 0.6                  # 模式1选择题比例
@@ -139,12 +139,18 @@ def build(idx, stem, opts, ans_raw) -> Question:
     return Question(idx, stem.strip(), opts[:], ans, qtype)
 
 # ---------- 交互 ----------
-def ask(q: Question) -> bool:
+def ask(q: Question, cur: int, tot: int) -> bool:
     """
     显示 1-n 纯文本选项；用户可输数字 1-5 或字母 A-E
+    cur 当前题号（从 1 开始），tot 总题数
     """
-    console.rule(f"[bold cyan]Question {q.qid}")
-    console.print(q.stem, style="bold")
+    # 显示进度，而不是 Word 原来的题号
+    console.rule(f"[bold cyan]Question {cur}/{tot}")
+
+    # —— 题干换行输出 ——
+    term_width = console.size.width or 80
+    wrapped = textwrap.fill(q.stem, width=term_width)
+    console.print(wrapped, style="bold")
 
     # ---------- 构造 (letter, clean_text) ----------
     if not q.options:                      # 判断题
@@ -189,10 +195,16 @@ def ask(q: Question) -> bool:
 
 
 def run_quiz(pool: List[Question]):
-    score = sum(ask(q) for q in pool)
+    score = 0
+    total = len(pool)
+    for idx, q in enumerate(pool, 1):          # 从 1 开始计数
+        if ask(q, idx, total):                 # 把 idx,total 传进去
+            score += 1
     console.print(f"\n[bold magenta]Finished![/]  "
-                  f"Score: {score}/{len(pool)}  "
-                  f"Accuracy: {score/len(pool):.1%}")
+                  f"Score: {score}/{total}  "
+                  f"Accuracy: {score/total:.1%}")
+    
+
 
 def mode_one(bank: List[Question]):
     mc_need = round(NUM_PRACTICE * MC_RATIO)
