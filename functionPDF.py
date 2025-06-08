@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ── v6 (2025-06-07)
-
+import random   # 你之前已经 import 过，这里确保存在即可
 import re, random, sys
 from dataclasses import dataclass
 from typing import List
@@ -138,24 +138,53 @@ def build(idx, stem, opts, ans_raw) -> Question:
 
 # ---------- 交互 ----------
 def ask(q: Question) -> bool:
+    """
+    显示 1-n 纯文本选项；用户可输数字 1-5 或字母 A-E
+    """
     console.rule(f"[bold cyan]Question {q.qid}")
     console.print(q.stem, style="bold")
 
-    if q.options:                 # 选择题按原文显示
-        for opt in q.options:
-            console.print("   " + opt)
-    else:                         # 判断题自动补选项
-        console.print("   A、正确")
-        console.print("   B、错误")
+    # ---------- 构造 (letter, clean_text) ----------
+    if not q.options:                      # 判断题
+        raw_opts = [("A", "正确"), ("B", "错误")]
+    else:
+        raw_opts = []
+        for raw in q.options:
+            m = re.match(r"\s*([A-E])[\s\.\、]\s*(.*)", raw, re.I)
+            if m:
+                raw_opts.append((m.group(1).upper(), m.group(2).strip()))
+            else:                          # fallback：整行当正文
+                raw_opts.append(("", raw.strip()))
 
-    user = Prompt.ask("[yellow]Your answer").upper().strip()
-    correct = user == q.answer
+    random.shuffle(raw_opts)               # 打乱顺序
+
+    # ---------- 显示 & 建立映射 ----------
+    num2letter, letter2num = {}, {}
+    for idx, (letter, text) in enumerate(raw_opts, 1):
+        console.print(f"  {idx}. {text}")  # 仅数字 + 文本
+        if letter:
+            num2letter[str(idx)] = letter
+            letter2num[letter] = str(idx)
+
+    # ---------- 收答 ----------
+    inp = Prompt.ask("[yellow]Your answer").strip().upper()
+    user_letter = num2letter.get(inp, inp)    # 数字→字母；字母留字母
+    correct     = (user_letter == q.answer)
+
+    # ---------- 反馈 ----------
     if correct:
         console.print("✅  Correct!", style="bold green")
     else:
-        console.print(f"❌  Wrong!  Correct answer: [bold red]{q.answer}[/]",
-                      style="bold red")
+        # 找到正确数字编号 + 文本
+        right_num  = letter2num.get(q.answer, "?")
+        right_text = next((t for l, t in raw_opts if l == q.answer), "")
+        console.print(
+            f"❌  Wrong!  Correct: {right_num}. {right_text}",
+            style="bold red"
+        )
     return correct
+
+
 
 def run_quiz(pool: List[Question]):
     score = sum(ask(q) for q in pool)
