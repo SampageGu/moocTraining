@@ -9,7 +9,7 @@ from rich.console import Console
 from rich.prompt  import Prompt
 import textwrap
 DOCX_FILE    = "full_answer.docx"   # ← 只解析这一个文件
-NUM_PRACTICE = 20                   # 模式1题量
+NUM_PRACTICE = 40                   # 模式1题量
 MC_RATIO     = 0.6                  # 模式1选择题比例
 LEAD_JUNK = re.compile(r"^[\s、，,．\.]+")
 
@@ -227,7 +227,7 @@ def main():
     bank = parse_docx(DOCX_FILE)
     console.print(f"[bold green]题库已加载：{len(bank)} 题[/]")
     while True:
-        mode = Prompt.ask("\n选择模式 1) 随机20题  2) 全部练习  q) 退出")
+        mode = Prompt.ask(f"\n选择模式 1) 随机{NUM_PRACTICE}题  2) 全部练习  q) 退出")
         if mode == "1":
             mode_one(bank)
         elif mode == "2":
